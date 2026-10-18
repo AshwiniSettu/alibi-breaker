@@ -1,0 +1,152 @@
+{
+  "id": "marina-claim-fraud",
+  "title": "The Marina Hit-and-Run Claim",
+  "category": "Insurance fraud",
+  "tagline": "An $18,400 claim. Was the car really parked all night?",
+  "map": "sf-basic",
+  "labels": {
+    "role": "Claims investigator",
+    "subjects": "Interviewees",
+    "accuse": "Flag as fraud",
+    "win": "Fraud confirmed",
+    "wrong": "Wrong call"
+  },
+  "briefing": "Claim #44-1093. Tom Reyes says his grey SUV (plate 8TRX221) sat in Marina Garage all evening while he had dinner at Lucca Trattoria, and that someone smashed the rear and drove off. Damage estimate: $18,400. Your job as the claims investigator: interview the people involved, line their stories up against the map, and decide whether to pay or flag the claim as fraud.",
+  "crime": {
+    "place": "marina_garage",
+    "time": "22:00",
+    "label": "Claimed hit-and-run",
+    "summary": "insurance claim #44-1093, a reported hit-and-run on Tom Reyes's parked grey SUV at Marina Garage tonight"
+  },
+  "watch": {
+    "place": "docks",
+    "window": ["21:30", "21:50"],
+    "label": "Pillar scrape at Pier 70 lot"
+  },
+  "suspects": [
+    {
+      "id": "tom",
+      "name": "Tom Reyes",
+      "role": "Claimant, owner of the grey SUV",
+      "color": "#e3a857",
+      "bio": "Filed the claim at 10:40 PM. Drives a grey SUV, plate 8TRX221. Rents a storage unit at Pier 70 in Dogpatch.",
+      "home": null,
+      "guilty": true,
+      "voice": "Friendly, talks fast, a bit too eager to help. Gets defensive and offended when doubted ('I've paid premiums for ten years').",
+      "truth": "You parked at Marina Garage around 8:25 PM and had a quick dinner at Lucca Trattoria with your friend Sam; you paid at 8:52. At 8:58 you drove out of the garage to grab a box from your storage unit at the Pier 70 lot in Dogpatch. At 9:40 you reversed into a concrete pillar there and crushed your rear bumper. You bought gas at the 3rd Street station at 9:48 (card ending 4471), drove back, and re-entered Marina Garage at 10:31. At 10:40 you reported a hit-and-run so insurance would pay instead of you covering a $2,500 deductible you can't afford.",
+      "cover": "You parked in Marina Garage around 8:25, had dinner at Lucca Trattoria with Sam from 8:30 until about 10:20, then walked back to the garage and found the back of your SUV smashed in. You called it in at 10:40. You say the car never moved all evening.",
+      "pressure": "If the detective shows that your times don't work (the gas receipt, the gate log, or the drive time), do not confess. Adjust: admit you 'popped out to get gas' around 9:30 and came straight back, and insist the car must have been hit after that. If asked about your route, say you took Bay Street and down 3rd Street. Never mention the storage unit or the pillar unless shown the Pier 70 security report, and even then say lots of SUVs are grey.",
+      "stressHint": "Hiding that he damaged the SUV himself at Pier 70 and staged a hit-and-run claim. Pressure points: whether the car ever left the garage, the gate log, the gas receipt, Dogpatch, the storage unit, the pillar, concrete dust in the dent. Questions about dinner are easy.",
+      "confession": "Tom rubs his face with both hands. \"I backed into a pillar at my storage unit. The deductible's $2,500 and I'm already behind on the car.\" He slides the claim form back across the table. \"Can I just withdraw it?\"",
+      "mock": {
+        "alibi": "I parked at Marina Garage around 8:25, then dinner at Lucca with my buddy Sam from 8:30 until about 10:20. Walked back to the garage and the whole back end was smashed. The car never moved all night.",
+        "cornered": "Okay, okay. I popped out to get gas around 9:30, took Bay Street and down 3rd, then came straight back. Somebody must have hit it after that.",
+        "evidence": "Lots of grey SUVs in this city. I've paid premiums for ten years, you know.",
+        "deflect": ["I've told you everything. Dinner, then I found the car smashed.", "Are you calling me a liar? I'm the victim here.", "Ask Sam, he was with me."],
+        "triggers": ["minute", "impossible", "drive", "lie", "lying", "gas", "gate", "8:58", "left the garage", "doesn't add up", "can't be", "receipt"]
+      }
+    },
+    {
+      "id": "sam",
+      "name": "Sam Park",
+      "role": "Tom's friend, dinner companion",
+      "color": "#7fc4c4",
+      "bio": "Had dinner with Tom at Lucca Trattoria. Old college friend.",
+      "home": null,
+      "guilty": false,
+      "voice": "Easygoing, loyal to Tom, hesitant to say anything that gets him in trouble. Honest when asked a direct question.",
+      "truth": "You met Tom at Lucca Trattoria at 8:30 PM. He left suddenly at about 8:55, saying he had to grab something from his storage unit. You stayed at the bar alone, closed your tab at 10:28, and Tom came back to the restaurant around 10:35 looking rattled. You didn't see the car. You don't want to get your friend in trouble, but you won't lie outright.",
+      "cover": "You had dinner at Lucca Trattoria with Tom starting at 8:30 and stayed until about 10:30. At first, keep it vague and say 'we had dinner, it was a nice night'.",
+      "pressure": "If the detective asks directly whether Tom was with you the whole time, or whether he left, admit he left around 8:55 to 'grab something from storage' and came back around 10:35. Say you stayed at Lucca the whole evening.",
+      "stressHint": "Innocent, but uncomfortable because Tom left dinner early and Sam doesn't want to snitch. Pressure points: whether Tom was there the whole time, when Tom left, storage. Questions about Sam's own evening are easy.",
+      "innocentReveal": "Sam was at the Lucca bar until 10:28. Sam had no part in the claim, just a friend who didn't want to talk.",
+      "mock": {
+        "alibi": "We had dinner at Lucca starting at 8:30. I stayed until about 10:30. It was a nice night, honestly.",
+        "cornered": "Look... Tom left around 8:55. Said he had to grab something from his storage unit. He came back around 10:35 and looked kind of shaken. I stayed at Lucca the whole time.",
+        "evidence": "Yeah, that's my tab. I was at the bar all night.",
+        "deflect": ["I don't want to get anyone in trouble.", "It was just dinner, man.", "I didn't see the car at all."],
+        "triggers": ["whole time", "left", "leave", "with you", "storage", "honest", "truth", "tom"]
+      }
+    },
+    {
+      "id": "rosa",
+      "name": "Rosa Diaz",
+      "role": "Marina Garage night attendant",
+      "color": "#b4a7d6",
+      "bio": "Night attendant at Marina Garage, on shift 8:00 PM to 2:00 AM.",
+      "home": null,
+      "guilty": false,
+      "voice": "Tired, blunt, a little nervous about her boss finding out things.",
+      "truth": "You were on shift at Marina Garage from 8:00 PM. You noticed the grey SUV 8TRX221 drive out at 8:58. You took an unapproved break from 9:45 to 10:20 to get food at Joe's Café in North Beach, and switched the booth camera off so your boss wouldn't see. When the SUV came back in at 10:31, its rear was already crushed. You didn't see any collision in the garage.",
+      "cover": "You were in the booth at Marina Garage all night and saw nothing unusual. Avoid talking about the booth camera.",
+      "pressure": "If the detective asks about the booth camera or your break, admit you stepped out to Joe's Café from 9:45 to 10:20 and switched the camera off. If asked whether the grey SUV left, admit it drove out at 8:58 and came back at 10:31 with the rear already smashed.",
+      "stressHint": "Innocent, but hiding an unapproved break and switching off the camera. Pressure points: the booth camera, her break, leaving the booth. Questions about the grey SUV make her think, not panic.",
+      "innocentReveal": "Rosa took an unapproved break, but she had nothing to do with the damage. The SUV came back already smashed.",
+      "mock": {
+        "alibi": "I was in the booth at Marina Garage all night, from 8:00. Didn't see anything unusual.",
+        "cornered": "Fine. I stepped out to Joe's Café from 9:45 to 10:20 and switched the booth camera off. But I saw that grey SUV drive out at 8:58, and when it came back at 10:31 the back was already smashed.",
+        "evidence": "Yeah, the camera was... offline. Maintenance.",
+        "deflect": ["I just park cars.", "Nobody tells me anything.", "Are we almost done? I'm on shift."],
+        "triggers": ["camera", "break", "booth", "maintenance", "left the booth", "suv", "8trx221", "drive out"]
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "id": "claim",
+      "title": "Claim #44-1093",
+      "detail": "Tom Reyes reports his parked grey SUV (8TRX221) was hit and run at Marina Garage between 8:30 and 10:20 PM. Damage estimate $18,400. Reported 10:40 PM.",
+      "facts": []
+    },
+    {
+      "id": "gatelog",
+      "title": "Marina Garage gate log",
+      "detail": "Plate 8TRX221: OUT at 8:58 PM, IN at 10:31 PM.",
+      "facts": [
+        { "suspect": "tom", "place": "marina_garage", "time": "20:58", "label": "SUV drove out of garage" },
+        { "suspect": "tom", "place": "marina_garage", "time": "22:31", "label": "SUV drove back in" }
+      ]
+    },
+    {
+      "id": "dinner",
+      "title": "Lucca Trattoria receipt",
+      "detail": "T. Reyes, dinner for two, paid 8:52 PM.",
+      "facts": [{ "suspect": "tom", "place": "lucca", "time": "20:52", "label": "Paid for dinner" }]
+    },
+    {
+      "id": "gas",
+      "title": "3rd St gas receipt",
+      "detail": "3rd Street gas station, Dogpatch. Card ending 4471 (T. Reyes), 9:48 PM.",
+      "facts": [{ "suspect": "tom", "place": "gas_station", "time": "21:48", "label": "Bought gas in Dogpatch" }]
+    },
+    {
+      "id": "pillar",
+      "title": "Pier 70 lot security report",
+      "detail": "9:40 PM: a dark SUV reversed into a concrete pillar and drove off. Grey paint transfer left on the pillar.",
+      "facts": [{ "suspect": null, "place": "docks", "time": "21:40", "label": "SUV hit a pillar" }]
+    },
+    {
+      "id": "photos",
+      "title": "Claim photos",
+      "detail": "Rear bumper crushed upward in one deep, narrow dent. Concrete dust packed into the dent. No paint from another vehicle.",
+      "facts": []
+    },
+    {
+      "id": "bartab",
+      "title": "Lucca bar tab",
+      "detail": "S. Park, tab closed 10:28 PM.",
+      "facts": [{ "suspect": "sam", "place": "lucca", "time": "22:28", "label": "Closed bar tab" }]
+    },
+    {
+      "id": "timesheet",
+      "title": "Garage timesheet",
+      "detail": "R. Diaz on shift 8:00 PM to 2:00 AM. Booth camera offline 9:45 to 10:20 PM, logged as 'maintenance'.",
+      "facts": []
+    }
+  ],
+  "solution": {
+    "suspect": "tom",
+    "explanation": "Tom Reyes staged the claim. He said the SUV sat in Marina Garage all evening while he was at Lucca until 10:20, but his card bought gas in Dogpatch at 9:48, a 43-minute drive from Lucca, and the gate log shows the SUV out from 8:58 to 10:31. The damage happened at 9:40 at the Pier 70 lot, where the SUV backed into a pillar.",
+    "weakCase": "Something smells off, but you can't deny a claim on a hunch. Catch Tom in a timeline the map says is impossible, then flag it."
+  }
+}
