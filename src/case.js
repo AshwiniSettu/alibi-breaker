@@ -27,7 +27,16 @@ export async function listCases() {
   for (const file of files) {
     try {
       const c = await readJson(path.join(casesDir, file));
-      cases.push({ id: c.id, title: c.title, category: c.category ?? "Case", tagline: c.tagline ?? "", icon: c.icon ?? "🕵️", area: c.area ?? "" });
+      cases.push({
+        id: c.id,
+        title: c.title,
+        category: c.category ?? "Case",
+        tagline: c.tagline ?? "",
+        icon: c.icon ?? "🕵️",
+        area: c.area ?? "",
+        subjects: c.suspects?.length ?? 0,
+        evidence: c.evidence?.length ?? 0,
+      });
     } catch (err) {
       console.warn(`Skipping ${file}: ${err.message}`);
     }

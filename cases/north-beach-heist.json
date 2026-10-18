@@ -4,31 +4,136 @@
   "category": "Crime",
   "icon": "💎",
   "area": "North Beach, San Francisco",
-  "tagline": "A diamond heist. Three alibis. One can't be walked.",
+  "tagline": "Diamond theft at Ravenna Jewelers. Three subjects, three alibis.",
   "map": "sf-north-beach",
-  "labels": { "role": "Detective", "subjects": "Suspects", "accuse": "Accuse", "win": "Case closed", "wrong": "Wrong suspect" },
+  "labels": {
+    "role": "Detective",
+    "subjects": "Suspects",
+    "accuse": "Accuse",
+    "win": "Case closed",
+    "wrong": "Wrong suspect"
+  },
   "briefing": "Saturday, 9:00 PM. Someone opened the back door of Ravenna Jewelers on Stockton & Union with an old staff code and walked out with $400,000 in diamonds. Three people had a reason to be nearby, and all three have an alibi. Everyone in North Beach gets around on foot, so every alibi has to fit the real walking time between corners. Find the one that doesn't.",
   "crime": {
     "place": "jewelers",
     "time": "21:00",
-    "window": ["20:50", "21:10"],
+    "window": [
+      "20:50",
+      "21:10"
+    ],
     "label": "Crime scene",
     "icon": "💎",
     "summary": "the robbery of Ravenna Jewelers (Stockton & Union, North Beach) at 9:00 PM tonight"
   },
   "watch": {
     "place": "jewelers",
-    "window": ["20:50", "21:10"],
+    "window": [
+      "20:50",
+      "21:10"
+    ],
     "label": "the robbery happened there at 9:00"
   },
   "places": [
-    { "id": "cafe", "name": "Joe's Café", "icon": "☕", "corner": ["Jones Street", "Chestnut Street"], "aliases": ["joe's", "joes", "the café", "the cafe", "café", "cafe"] },
-    { "id": "jewelers", "name": "Ravenna Jewelers", "icon": "💎", "corner": ["Stockton Street", "Union Street"], "aliases": ["ravenna", "the store", "the jewelry store", "jewelers"] },
-    { "id": "marco_home", "name": "Kestrel Court", "icon": "🏠", "corner": ["Kearny Street", "Vallejo Street"], "aliases": ["kestrel", "my building"] },
-    { "id": "cinema", "name": "Rialto Cinema", "icon": "🎬", "corner": ["Jones Street", "Vallejo Street"], "aliases": ["rialto", "the cinema", "the movies", "the theater", "the theatre", "cinema", "movie"] },
-    { "id": "lena_home", "name": "Lena's flat", "icon": "🏡", "corner": ["Mason Street", "Chestnut Street"], "aliases": [] },
-    { "id": "bar", "name": "The Green Door", "icon": "🍸", "corner": ["Grant Avenue", "Chestnut Street"], "aliases": ["green door", "the bar", "bar"] },
-    { "id": "camera", "name": "Stockton & Filbert camera", "icon": "📷", "corner": ["Stockton Street", "Filbert Street"], "aliases": ["stockton and filbert", "filbert"] }
+    {
+      "id": "cafe",
+      "name": "Joe's Café",
+      "icon": "☕",
+      "corner": [
+        "Jones Street",
+        "Chestnut Street"
+      ],
+      "aliases": [
+        "joe's",
+        "joes",
+        "the café",
+        "the cafe",
+        "café",
+        "cafe"
+      ]
+    },
+    {
+      "id": "jewelers",
+      "name": "Ravenna Jewelers",
+      "icon": "💎",
+      "corner": [
+        "Stockton Street",
+        "Union Street"
+      ],
+      "aliases": [
+        "ravenna",
+        "the store",
+        "the jewelry store",
+        "jewelers"
+      ]
+    },
+    {
+      "id": "marco_home",
+      "name": "Kestrel Court",
+      "icon": "🏠",
+      "corner": [
+        "Kearny Street",
+        "Vallejo Street"
+      ],
+      "aliases": [
+        "kestrel",
+        "my building"
+      ]
+    },
+    {
+      "id": "cinema",
+      "name": "Rialto Cinema",
+      "icon": "🎬",
+      "corner": [
+        "Jones Street",
+        "Vallejo Street"
+      ],
+      "aliases": [
+        "rialto",
+        "the cinema",
+        "the movies",
+        "the theater",
+        "the theatre",
+        "cinema",
+        "movie"
+      ]
+    },
+    {
+      "id": "lena_home",
+      "name": "Lena's flat",
+      "icon": "🏡",
+      "corner": [
+        "Mason Street",
+        "Chestnut Street"
+      ],
+      "aliases": []
+    },
+    {
+      "id": "bar",
+      "name": "The Green Door",
+      "icon": "🍸",
+      "corner": [
+        "Grant Avenue",
+        "Chestnut Street"
+      ],
+      "aliases": [
+        "green door",
+        "the bar",
+        "bar"
+      ]
+    },
+    {
+      "id": "camera",
+      "name": "Stockton & Filbert camera",
+      "icon": "📷",
+      "corner": [
+        "Stockton Street",
+        "Filbert Street"
+      ],
+      "aliases": [
+        "stockton and filbert",
+        "filbert"
+      ]
+    }
   ],
   "suspects": [
     {
@@ -50,8 +155,25 @@
         "alibi": "I was at Joe's Café all evening, from about 8:00 until 9:10. Then I walked straight home, I was home by 9:15 watching the game.",
         "cornered": "Okay, fine, maybe I left Joe's earlier. Around 8:50. I walked down Stockton like always and got home around 9:10. I didn't stop anywhere, detective.",
         "evidence": "Half of North Beach owns a grey hoodie, detective. That proves nothing.",
-        "deflect": ["I already told you. Joe's, then home.", "Am I under arrest? Because this is starting to feel like harassment.", "Ask Joe. He'll tell you I was there."],
-        "triggers": ["minute", "impossible", "walk", "lie", "lying", "route", "takes", "how did", "concierge", "9:11", "doesn't add up", "can't be"]
+        "deflect": [
+          "I already told you. Joe's, then home.",
+          "Am I under arrest? Because this is starting to feel like harassment.",
+          "Ask Joe. He'll tell you I was there."
+        ],
+        "triggers": [
+          "minute",
+          "impossible",
+          "walk",
+          "lie",
+          "lying",
+          "route",
+          "takes",
+          "how did",
+          "concierge",
+          "9:11",
+          "doesn't add up",
+          "can't be"
+        ]
       }
     },
     {
@@ -73,8 +195,21 @@
         "alibi": "I was at the Rialto Cinema, the 8:30 show. I got there around 8:25 and stayed until it ended at 10:10, then I walked home and got in about 10:25.",
         "cornered": "I... okay. When I locked up at 8:00, I don't think I set the vault alarm. I was rushing to the movie. I'm so sorry. But I never went back there, I swear.",
         "evidence": "That's me, yes. I was at the movie the whole time, I promise.",
-        "deflect": ["I'm sorry, I've told you everything I know.", "I just went to see a movie, that's all.", "Can I call someone? I'm really nervous."],
-        "triggers": ["alarm", "vault", "lock", "closing", "close up", "roster", "hiding", "truth"]
+        "deflect": [
+          "I'm sorry, I've told you everything I know.",
+          "I just went to see a movie, that's all.",
+          "Can I call someone? I'm really nervous."
+        ],
+        "triggers": [
+          "alarm",
+          "vault",
+          "lock",
+          "closing",
+          "close up",
+          "roster",
+          "hiding",
+          "truth"
+        ]
       }
     },
     {
@@ -96,21 +231,148 @@
         "alibi": "The Green Door. Signed in at 8:44, worked the door till 11:00. Ask the manager.",
         "cornered": "Fine. I was supposed to be on the jewelry store patrol tonight. Took the bar shift instead, it pays double. That's why nobody was there. But I didn't rob anybody.",
         "evidence": "Yeah, that's me. Told you. I was at the bar.",
-        "deflect": ["Already told you where I was.", "I've got nothing else to say.", "Ask the bar."],
-        "triggers": ["roster", "patrol", "shift", "supposed to", "schedule", "why weren't you", "money"]
+        "deflect": [
+          "Already told you where I was.",
+          "I've got nothing else to say.",
+          "Ask the bar."
+        ],
+        "triggers": [
+          "roster",
+          "patrol",
+          "shift",
+          "supposed to",
+          "schedule",
+          "why weren't you",
+          "money"
+        ]
       }
     }
   ],
   "evidence": [
-    { "id": "receipt", "icon": "🧾", "place": "cafe", "start": true, "title": "Joe's Café receipt", "detail": "Card payment by Marco Vale: one espresso, one slice of pie. Timestamp 8:38 PM.", "facts": [{ "suspect": "marco", "place": "cafe", "time": "20:38", "label": "Paid at Joe's Café" }] },
-    { "id": "camera", "icon": "📷", "place": "camera", "title": "Stockton & Filbert corner camera", "detail": "8:58 PM: a man in a grey hoodie walking south on Stockton toward Ravenna Jewelers. Face hidden.", "facts": [{ "suspect": null, "place": "camera", "time": "20:58", "label": "Man in grey hoodie" }] },
-    { "id": "concierge", "icon": "📋", "place": "marco_home", "title": "Kestrel Court concierge log", "detail": "Resident M. Vale, apt 9C, came in through the lobby at 9:11 PM.", "facts": [{ "suspect": "marco", "place": "marco_home", "time": "21:11", "label": "Entered Kestrel Court lobby" }] },
-    { "id": "keypad", "icon": "🔢", "place": "jewelers", "start": true, "title": "Back door keypad log", "detail": "Back door opened with an old staff code at 9:00 PM. The code was never deactivated after a recent staff change.", "facts": [] },
-    { "id": "ticket", "icon": "🎟️", "place": "cinema", "title": "Rialto Cinema ticket", "detail": "One adult ticket, 8:30 PM screening, bought at the box office at 8:24 PM by L. Ortiz.", "facts": [{ "suspect": "lena", "place": "cinema", "time": "20:24", "label": "Bought cinema ticket" }] },
-    { "id": "usher", "icon": "🗣️", "place": "cinema", "title": "Rialto usher statement", "detail": "\"Ms. Ortiz came back from the snack bar at about 8:55 and sat through the rest of the film.\"", "facts": [{ "suspect": "lena", "place": "cinema", "time": "20:55", "label": "Seen by usher" }] },
-    { "id": "signin", "icon": "✍️", "place": "bar", "title": "Green Door staff sign-in", "detail": "D. Okafor, door staff, signed in at 8:44 PM.", "facts": [{ "suspect": "dez", "place": "bar", "time": "20:44", "label": "Signed in for door shift" }] },
-    { "id": "doorcam", "icon": "📹", "place": "bar", "title": "Green Door door camera", "detail": "Dez Okafor checking IDs at the door, 8:58 PM.", "facts": [{ "suspect": "dez", "place": "bar", "time": "20:58", "label": "On the bar's door camera" }] },
-    { "id": "roster", "icon": "🗓️", "place": "jewelers", "start": true, "title": "Ravenna staff roster", "detail": "Security patrol tonight: D. Okafor, 8:30 to 10:00 PM. Vault alarm set by: L. Ortiz at close (8:00 PM), no confirmation recorded.", "facts": [] }
+    {
+      "id": "receipt",
+      "icon": "🧾",
+      "place": "cafe",
+      "start": true,
+      "title": "Joe's Café receipt",
+      "detail": "Card payment by Marco Vale: one espresso, one slice of pie. Timestamp 8:38 PM.",
+      "facts": [
+        {
+          "suspect": "marco",
+          "place": "cafe",
+          "time": "20:38",
+          "label": "Paid at Joe's Café"
+        }
+      ]
+    },
+    {
+      "id": "camera",
+      "icon": "📷",
+      "place": "camera",
+      "title": "Stockton & Filbert corner camera",
+      "detail": "8:58 PM: a man in a grey hoodie walking south on Stockton toward Ravenna Jewelers. Face hidden.",
+      "facts": [
+        {
+          "suspect": null,
+          "place": "camera",
+          "time": "20:58",
+          "label": "Man in grey hoodie"
+        }
+      ]
+    },
+    {
+      "id": "concierge",
+      "icon": "📋",
+      "place": "marco_home",
+      "title": "Kestrel Court concierge log",
+      "detail": "Resident M. Vale, apt 9C, came in through the lobby at 9:11 PM.",
+      "facts": [
+        {
+          "suspect": "marco",
+          "place": "marco_home",
+          "time": "21:11",
+          "label": "Entered Kestrel Court lobby"
+        }
+      ]
+    },
+    {
+      "id": "keypad",
+      "icon": "🔢",
+      "place": "jewelers",
+      "start": true,
+      "title": "Back door keypad log",
+      "detail": "Back door opened with an old staff code at 9:00 PM. The code was never deactivated after a recent staff change.",
+      "facts": []
+    },
+    {
+      "id": "ticket",
+      "icon": "🎟️",
+      "place": "cinema",
+      "title": "Rialto Cinema ticket",
+      "detail": "One adult ticket, 8:30 PM screening, bought at the box office at 8:24 PM by L. Ortiz.",
+      "facts": [
+        {
+          "suspect": "lena",
+          "place": "cinema",
+          "time": "20:24",
+          "label": "Bought cinema ticket"
+        }
+      ]
+    },
+    {
+      "id": "usher",
+      "icon": "🗣️",
+      "place": "cinema",
+      "title": "Rialto usher statement",
+      "detail": "\"Ms. Ortiz came back from the snack bar at about 8:55 and sat through the rest of the film.\"",
+      "facts": [
+        {
+          "suspect": "lena",
+          "place": "cinema",
+          "time": "20:55",
+          "label": "Seen by usher"
+        }
+      ]
+    },
+    {
+      "id": "signin",
+      "icon": "✍️",
+      "place": "bar",
+      "title": "Green Door staff sign-in",
+      "detail": "D. Okafor, door staff, signed in at 8:44 PM.",
+      "facts": [
+        {
+          "suspect": "dez",
+          "place": "bar",
+          "time": "20:44",
+          "label": "Signed in for door shift"
+        }
+      ]
+    },
+    {
+      "id": "doorcam",
+      "icon": "📹",
+      "place": "bar",
+      "title": "Green Door door camera",
+      "detail": "Dez Okafor checking IDs at the door, 8:58 PM.",
+      "facts": [
+        {
+          "suspect": "dez",
+          "place": "bar",
+          "time": "20:58",
+          "label": "On the bar's door camera"
+        }
+      ]
+    },
+    {
+      "id": "roster",
+      "icon": "🗓️",
+      "place": "jewelers",
+      "start": true,
+      "title": "Ravenna staff roster",
+      "detail": "Security patrol tonight: D. Okafor, 8:30 to 10:00 PM. Vault alarm set by: L. Ortiz at close (8:00 PM), no confirmation recorded.",
+      "facts": []
+    }
   ],
   "solution": {
     "suspect": "marco",

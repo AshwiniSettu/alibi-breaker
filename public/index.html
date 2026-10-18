@@ -5,125 +5,137 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Alibi Breaker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Start screen -->
-  <section id="start" class="screen start">
-    <div class="start-inner">
-      <div class="hero">
-        <div class="hero-badge" aria-hidden="true">🔍</div>
-        <h1 class="logo">Alibi Breaker</h1>
-        <p class="pitch">Chat with the suspects. Every place and time they mention pops onto a real San Francisco map. If a story can't be walked in time, you've caught a lie.</p>
-      </div>
-
-      <ol class="how">
-        <li><span class="how-icon">💬</span><b>Ask questions</b><span>Where were they, and when?</span></li>
-        <li><span class="how-icon">🗺️</span><b>Watch the map</b><span>Their story is pinned on real streets.</span></li>
-        <li><span class="how-icon">🚨</span><b>Catch the lie</b><span>The map proves who couldn't make it.</span></li>
-      </ol>
-
-      <h2 class="pick-title">Pick a case</h2>
-      <div id="case-list" class="case-list"><p class="muted">Loading cases…</p></div>
-      <p id="model-badge" class="model-badge"></p>
+  <header class="appbar">
+    <a class="brand" href="/" aria-label="Alibi Breaker home">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M8 15.5 11 9l2.2 4.2L15 11l1.5 4.5"/></svg>
+      <span>Alibi Breaker</span>
+    </a>
+    <div id="appbar-case" class="appbar-case" hidden>
+      <span class="sep" aria-hidden="true">/</span>
+      <span id="case-title" class="crumb"></span>
+      <span id="case-meta" class="meta-chip"></span>
     </div>
+    <div class="appbar-actions">
+      <span id="model-status" class="status"></span>
+      <button id="btn-briefing" class="btn" hidden>Case file</button>
+      <button id="btn-cases" class="btn" hidden>All cases</button>
+      <button id="btn-accuse" class="btn danger" hidden>Make accusation</button>
+    </div>
+  </header>
+
+  <!-- Case library -->
+  <section id="start" class="library">
+    <div class="library-head">
+      <h1>Case library</h1>
+      <p>Interview each subject. Every place and time they state is recorded and checked against real walking times on San Francisco streets and the evidence on file. Statements that cannot be physically true are flagged automatically.</p>
+    </div>
+    <div class="table-card">
+      <table class="cases">
+        <thead><tr><th>Case</th><th>Type</th><th>Location</th><th class="num">Subjects</th><th class="num">Evidence</th><th></th></tr></thead>
+        <tbody id="case-list"><tr><td colspan="6" class="muted">Loading cases…</td></tr></tbody>
+      </table>
+    </div>
+    <ol class="steps">
+      <li><b>Interview</b><span>Ask where each subject was and when. Stated places and times are logged to the case timeline.</span></li>
+      <li><b>Verify</b><span>Each statement is checked against walking times on real streets and against the evidence on file.</span></li>
+      <li><b>Conclude</b><span>Accuse a subject once at least one of their statements is proven impossible.</span></li>
+    </ol>
   </section>
 
-  <!-- Game screen -->
-  <section id="game" class="screen" hidden>
-    <header class="topbar">
-      <div class="topbar-title">
-        <span id="case-icon" class="case-icon" aria-hidden="true"></span>
-        <div>
-          <h1 id="case-title" class="case-title"></h1>
-          <p id="case-sub" class="case-sub"></p>
-        </div>
-      </div>
-      <div class="topbar-actions">
-        <span id="model-badge-game" class="model-chip"></span>
-        <button id="btn-briefing" class="btn soft">📁 Case file</button>
-        <button id="btn-cases" class="btn soft">↩ Cases</button>
-        <button id="btn-accuse" class="btn accuse">Accuse</button>
-      </div>
-    </header>
+  <!-- Workspace -->
+  <section id="game" class="workspace" hidden>
+    <div class="col-left">
+      <section class="card">
+        <header class="card-head"><h2 id="subjects-title">Subjects</h2></header>
+        <div id="suspects" class="subjects"></div>
+      </section>
 
-    <main class="layout">
       <section class="card interview">
-        <div id="suspects" class="suspects"></div>
-        <div id="chat" class="chat" aria-live="polite"></div>
-        <form id="ask-form" class="ask-form" autocomplete="off">
-          <div id="quick" class="quick"></div>
-          <div id="evidence-chip" class="evidence-chip" hidden>
-            <span>Showing <strong id="evidence-chip-title"></strong></span>
-            <button type="button" id="evidence-chip-clear" aria-label="Stop showing evidence">✕</button>
+        <header class="card-head">
+          <h2>Interview</h2>
+          <span id="interview-with" class="muted small"></span>
+        </header>
+        <div id="chat" class="transcript" aria-live="polite"></div>
+        <form id="ask-form" class="ask" autocomplete="off">
+          <div id="evidence-chip" class="attached" hidden>
+            <span>Presenting: <b id="evidence-chip-title"></b></span>
+            <button type="button" id="evidence-chip-clear" class="link">Remove</button>
           </div>
           <div class="ask-row">
-            <input id="question" maxlength="600" placeholder="Ask anything…">
+            <input id="question" maxlength="600" placeholder="Ask a question…">
             <button id="btn-ask" class="btn primary" type="submit">Ask</button>
           </div>
           <p id="ask-error" class="error" hidden></p>
+          <div class="suggest"><span class="muted small">Suggested:</span><span id="quick"></span></div>
         </form>
       </section>
+    </div>
 
-      <section class="board">
-        <div class="card map-card">
-          <div class="map-head">
-            <h2 id="map-title" class="card-title">🗺️ Map</h2>
-            <p id="route-readout" class="route-readout">Tap two places to check the walking time.</p>
-          </div>
-          <div class="map-frame"><svg id="map" role="img" aria-label="Street map with what each suspect said"></svg></div>
-          <div class="map-foot">
-            <div class="legend">
-              <span><i class="lg lg-crime"></i><span id="legend-crime">Crime scene</span></span>
-              <span><i class="lg lg-claim"></i>What they said</span>
-              <span><i class="lg lg-fact"></i>Evidence</span>
-            </div>
-            <span id="map-attribution" class="attribution"></span>
-          </div>
-        </div>
-
-        <div class="board-cols">
-          <div class="card">
-            <h2 class="card-title">🚨 Lies caught</h2>
-            <div id="alerts" class="alerts"></div>
-            <h2 class="card-title spaced">🕒 <span id="timeline-who"></span>'s night</h2>
-            <ol id="timeline" class="timeline"></ol>
-          </div>
-          <div class="card">
-            <h2 class="card-title">🗂️ Evidence</h2>
-            <div id="evidence" class="evidence-list"></div>
-          </div>
-        </div>
+    <div class="col-right">
+      <section class="card map-card">
+        <header class="card-head">
+          <h2 id="map-title">Map</h2>
+          <span id="route-readout" class="muted small">Select two locations to measure walking time.</span>
+        </header>
+        <div class="map-frame"><svg id="map" role="img" aria-label="Street map with recorded statements and evidence"></svg></div>
+        <footer class="map-foot">
+          <span class="legend"><i class="lg lg-scene"></i><span id="legend-crime">Incident location</span></span>
+          <span class="legend"><i class="lg lg-claim"></i>Statement</span>
+          <span class="legend"><i class="lg lg-fact"></i>Evidence</span>
+          <span id="map-attribution" class="attribution"></span>
+        </footer>
       </section>
-    </main>
+
+      <div class="grid-2">
+        <section class="card">
+          <header class="card-head"><h2>Findings</h2><span id="findings-count" class="count"></span></header>
+          <div id="alerts" class="findings"></div>
+        </section>
+        <section class="card">
+          <header class="card-head"><h2>Timeline</h2><span id="timeline-who" class="muted small"></span></header>
+          <ol id="timeline" class="timeline"></ol>
+        </section>
+      </div>
+
+      <section class="card">
+        <header class="card-head"><h2>Evidence on file</h2><span id="evidence-count" class="count"></span></header>
+        <div id="evidence" class="evidence"></div>
+      </section>
+    </div>
   </section>
 
   <dialog id="briefing-dialog" class="dialog">
-    <p class="dialog-kicker" id="briefing-kicker"></p>
+    <p class="eyebrow" id="briefing-kicker"></p>
     <h2 id="briefing-title"></h2>
-    <p id="briefing-text"></p>
+    <p id="briefing-text" class="body"></p>
+    <h3 class="sub">Subjects</h3>
     <div id="briefing-people" class="people"></div>
-    <form method="dialog"><button class="btn primary wide">Start questioning</button></form>
+    <form method="dialog" class="dialog-actions"><button class="btn primary">Begin interviews</button></form>
   </dialog>
 
   <dialog id="accuse-dialog" class="dialog">
     <div id="accuse-pick">
-      <h2 id="accuse-heading">Who did it?</h2>
-      <p class="muted">You'll need at least one alibi the map proves impossible.</p>
+      <h2 id="accuse-heading">Make accusation</h2>
+      <p class="body muted">An accusation requires at least one statement proven impossible.</p>
       <div id="accuse-options" class="accuse-options"></div>
-      <form method="dialog"><button class="btn soft wide">Keep investigating</button></form>
+      <form method="dialog" class="dialog-actions"><button class="btn">Cancel</button></form>
     </div>
     <div id="accuse-result" hidden>
-      <div id="result-emoji" class="result-emoji" aria-hidden="true"></div>
+      <p class="eyebrow" id="result-kicker"></p>
       <h2 id="result-title"></h2>
-      <p id="result-text" class="result-text"></p>
-      <ul id="result-proof" class="result-proof"></ul>
-      <p id="result-solution" class="muted"></p>
-      <p id="result-stats" class="result-stats"></p>
+      <p id="result-text" class="quote"></p>
+      <h3 class="sub" id="result-proof-title">Supporting findings</h3>
+      <ul id="result-proof" class="proof"></ul>
+      <h3 class="sub">Case summary</h3>
+      <p id="result-solution" class="body"></p>
+      <p id="result-stats" class="muted small"></p>
       <div class="dialog-actions">
-        <button id="btn-result-close" class="btn soft">Back to the board</button>
-        <button id="btn-result-new" class="btn primary">Play another case</button>
+        <button id="btn-result-close" class="btn">Return to case</button>
+        <button id="btn-result-new" class="btn primary">Case library</button>
       </div>
     </div>
   </dialog>
