@@ -4,11 +4,23 @@ const esc = (t) =>
 const toMin = (hhmm) => hhmm.split(":").reduce((h, m) => Number(h) * 60 + Number(m));
 const fmt = (min) => {
   const h = Math.floor(min / 60) % 24;
-  return `${h % 12 || 12}:${String(min % 60).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+  return `${h % 12 || 12}:${String(Math.round(min) % 60).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 };
+const short = (min) => fmt(min).replace(/ [AP]M$/, "");
+const span = (p) => (p.until > p.time ? `${short(p.time)}–${fmt(p.until)}` : fmt(p.time));
+const spanShort = (p) => (p.until > p.time ? `${short(p.time)}–${short(p.until)}` : short(p.time));
 const firstName = (s) => s.name.split(" ")[0];
+const initials = (s) => s.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
-const QUICK = ["Where were you tonight?", "What time did you leave?", "Which way did you drive?", "Who can confirm that?"];
+const QUICK = ["Where were you tonight?", "What time did you leave?", "Which route did you take?", "Who can confirm that?"];
+const COMPOSURE = [
+  [30, "Calm", "#12b76a"],
+  [50, "Uneasy", "#84adff"],
+  [70, "Agitated", "#f79009"],
+  [101, "Distressed", "#d92d20"],
+];
+const composure = (v) => COMPOSURE.find(([max]) => v < max);
+const PIN_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.3-6-10a6 6 0 1 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>`;
 
 let state;
 function resetState(data) {
@@ -29,6 +41,8 @@ function resetState(data) {
 }
 const suspect = (id) => state.case.suspects.find((s) => s.id === id);
 const place = (id) => state.case.map.places.find((p) => p.id === id);
+const nodeXY = (id) => place(id) ?? state.case.map.corners.find((c) => c.id === id);
+const badge = (s, cls = "") => `<span class="initials ${cls}" style="--sc:${esc(s.color)}">${esc(initials(s))}</span>`;
 
 async function api(method, url, body) {
   const res = await fetch(url, {
@@ -41,54 +55,59 @@ async function api(method, url, body) {
   return data;
 }
 
-// ------------------------------------------------------------ start screen
+// ------------------------------------------------------------ case library
 
 async function boot() {
   try {
-    const health = await api("GET", "/api/health");
-    const tier = (t) => `<b>${esc(t.model)}</b> (${esc(t.provider)})`;
-    const html = `Suspect brain: ${tier(health.big)} · Note-taker: ${tier(health.fast)}${health.big.provider === "mock" ? " · mock mode, no AI" : ""}`;
-    $("#model-badge").innerHTML = html;
-    $("#model-badge-game").innerHTML = `${tier(health.big)} + ${tier(health.fast)}`;
+    const h = await api("GET", "/api/health");
+    const mock = h.big.provider === "mock";
+    $("#model-status").textContent = mock ? "Offline demo mode" : `${h.big.model} · ${h.fast.model}`;
+    $("#model-status").title = `Subject model: ${h.big.provider}/${h.big.model}. Note-taker: ${h.fast.provider}/${h.fast.model}.`;
+    $("#model-status").classList.toggle("mock", mock);
   } catch {
-    $("#model-badge").textContent = "Server not reachable.";
+    $("#model-status").textContent = "Server unavailable";
   }
   try {
     const { cases } = await api("GET", "/api/cases");
     $("#case-list").innerHTML = cases.length
       ? cases
           .map(
-            (c) => `<button class="case-card" data-case="${esc(c.id)}">
-              <span class="stamp">${esc(c.category)}</span>
-              <h3>${esc(c.title)}</h3><p>${esc(c.tagline)}</p></button>`,
+            (c) => `<tr>
+              <td><div class="title">${esc(c.title)}</div><div class="tagline">${esc(c.tagline)}</div></td>
+              <td><span class="tag">${esc(c.category)}</span></td>
+              <td>${esc(c.area.replace(", San Francisco", ""))}</td>
+              <td class="num">${c.subjects ?? "—"}</td>
+              <td class="num">${c.evidence ?? "—"}</td>
+              <td class="num"><button class="btn primary" data-case="${esc(c.id)}">Open case</button></td>
+            </tr>`,
           )
           .join("")
-      : `<p class="muted">No cases found in the cases/ folder.</p>`;
+      : `<tr><td colspan="6" class="muted">No cases found in the cases/ folder.</td></tr>`;
   } catch (err) {
-    $("#case-list").innerHTML = `<p class="error">${esc(err.message)}</p>`;
+    $("#case-list").innerHTML = `<tr><td colspan="6" class="error">${esc(err.message)}</td></tr>`;
   }
 }
 
 $("#case-list").addEventListener("click", async (e) => {
-  const card = e.target.closest("[data-case]");
-  if (!card) return;
-  card.disabled = true;
+  const btn = e.target.closest("[data-case]");
+  if (!btn) return;
+  btn.disabled = true;
   try {
-    resetState(await api("POST", "/api/new", { caseId: card.dataset.case }));
-    $("#start").hidden = true;
-    $("#game").hidden = false;
+    resetState(await api("POST", "/api/new", { caseId: btn.dataset.case }));
+    showWorkspace(true);
     renderAll();
     openBriefing();
   } catch (err) {
     alert(err.message);
   } finally {
-    card.disabled = false;
+    btn.disabled = false;
   }
 });
 
-function showStart() {
-  $("#game").hidden = true;
-  $("#start").hidden = false;
+function showWorkspace(on) {
+  $("#start").hidden = on;
+  $("#game").hidden = !on;
+  for (const id of ["#appbar-case", "#btn-briefing", "#btn-cases", "#btn-accuse"]) $(id).hidden = !on;
 }
 
 // ------------------------------------------------------------ rendering
@@ -96,89 +115,83 @@ function showStart() {
 function renderAll() {
   const c = state.case;
   $("#case-title").textContent = c.title;
-  $("#case-category").textContent = `${c.category} · You are the ${c.labels.role.toLowerCase()}`;
-  $("#btn-accuse").textContent = c.labels.accuse;
+  $("#case-meta").textContent = `${c.category} · ${c.area}`;
+  $("#btn-accuse").textContent = c.labels.accuse === "Accuse" ? "Make accusation" : c.labels.accuse;
+  $("#subjects-title").textContent = c.labels.subjects;
   $("#legend-crime").textContent = c.crime.label;
-  $("#question").placeholder = `Where were you at ${fmt(toMin(c.crime.time))}?`;
+  $("#map-title").textContent = c.map.name.replace("San Francisco · ", "San Francisco — ");
+  $("#map-attribution").textContent = c.map.attribution;
   $("#quick").innerHTML = QUICK.map((q) => `<button type="button" data-q="${esc(q)}">${esc(q)}</button>`).join("");
-  renderSuspects();
-  renderChat();
+  renderSubjects();
+  renderTranscript();
   renderMap();
-  renderAlerts();
+  renderFindings();
   renderTimeline();
   renderEvidence();
 }
 
-function stressColor(v) {
-  return v > 65 ? "var(--red)" : v > 35 ? "var(--amber)" : "var(--green)";
-}
-
-function renderSuspects() {
+function renderSubjects() {
   $("#suspects").innerHTML = state.case.suspects
     .map((s) => {
       const v = state.stress[s.id];
-      const broken = state.contradictions.some((x) => x.suspect === s.id);
-      return `<button class="suspect" data-suspect="${s.id}" aria-pressed="${s.id === state.active}" style="--sc:${esc(s.color)}">
-        <span class="name"><span class="dot"></span>${esc(s.name)}</span>
-        <span class="role">${esc(s.role)}</span>
-        <span class="stress"><span style="width:${v}%;background:${stressColor(v)}"></span></span>
-        <span class="stress-label">Stress ${v}% ${broken ? '<span class="flag">· ALIBI BROKEN</span>' : ""}</span>
+      const [, label, color] = composure(v);
+      const n = state.contradictions.filter((x) => x.suspect === s.id).length;
+      return `<button class="subject" data-suspect="${s.id}" aria-pressed="${s.id === state.active}">
+        ${badge(s)}
+        <span><span class="nm">${esc(s.name)}</span> ${n ? `<span class="flag">${n} inconsistenc${n > 1 ? "ies" : "y"}</span>` : ""}<br><span class="rl">${esc(s.role)}</span></span>
+        <span class="composure" title="Composure: ${label}"><span class="lbl">${label}</span><span class="bar"><span style="width:${v}%;background:${color}"></span></span></span>
       </button>`;
     })
     .join("");
 }
 
-function renderChat() {
+function renderTranscript() {
   const s = suspect(state.active);
   const msgs = state.chats[s.id];
-  const chat = $("#chat");
-  if (!msgs.length) {
-    chat.innerHTML = `<div class="msg system">${esc(s.name)} sits down across the table. ${esc(s.bio)}</div>`;
-    return;
-  }
-  chat.innerHTML = msgs
+  $("#interview-with").textContent = `with ${s.name}`;
+  let q = 0;
+  const html = msgs
     .map((m) => {
-      if (m.kind === "detective") {
-        return `<div class="msg detective">${m.shown ? `<div class="shown">Shows: ${esc(m.shown)}</div>` : ""}${esc(m.text)}</div>`;
+      if (m.kind === "me") {
+        q += 1;
+        return `<div class="entry q"><span class="det">YOU</span><div>
+          <div class="who">${esc(state.case.labels.role)}<span class="q">Q${q}</span></div>
+          <div class="text">${esc(m.text)}</div>${m.shown ? `<div class="presented">Presented: ${esc(m.shown)}</div>` : ""}</div></div>`;
       }
-      if (m.kind === "typing") {
-        return `<div class="msg suspect" style="--sc:${esc(s.color)}"><div class="who">${esc(s.name)}</div><div class="typing">thinking</div></div>`;
+      if (m.kind === "pending") return `<div class="entry a">${badge(s, "sm")}<div><div class="who">${esc(s.name)}</div><div class="pending">Responding</div></div></div>`;
+      if (m.kind === "them") {
+        const rec = m.claims.map((x) => `<span class="rec">${PIN_ICON}${esc(x.placeName)} · ${esc(x.timeText)}</span>`).join("");
+        return `<div class="entry a">${badge(s, "sm")}<div>
+          <div class="who">${esc(s.name)}<span class="q">A${q}</span></div>
+          <div class="text line">${m.animate ? "" : esc(m.text)}</div>
+          ${m.tell ? `<div class="observed">Observed: <i>${esc(m.tell)}</i></div>` : ""}
+          ${rec ? `<div class="recorded">${rec}</div>` : ""}</div></div>`;
       }
-      if (m.kind === "suspect") {
-        const chips = m.claims.map((x) => `<span class="chip">📍 ${esc(x.placeName)} · ${esc(x.timeText)}</span>`).join("");
-        return `<div class="msg suspect" style="--sc:${esc(s.color)}">
-          <div class="who">${esc(s.name)}</div>
-          <div class="line" data-full="${esc(m.text)}">${m.animate ? "" : esc(m.text)}</div>
-          ${m.tell ? `<div class="tell">${esc(firstName(s))} ${esc(m.tell)}</div>` : ""}
-          ${chips ? `<div class="chips">${chips}</div>` : ""}</div>`;
-      }
-      return `<div class="msg system ${m.kind}">${esc(m.text)}</div>`;
+      return `<div class="notice ${m.kind}">${m.title ? `<b>${esc(m.title)}</b>` : ""}${esc(m.text)}</div>`;
     })
     .join("");
+  const chat = $("#chat");
+  chat.innerHTML = msgs.length ? html : `<div class="notice info"><b>${esc(s.name)}</b>${esc(s.bio)}</div>`;
   const pending = msgs.find((m) => m.animate);
   if (pending) {
     pending.animate = false;
     const lines = chat.querySelectorAll(".line");
-    typewrite(lines[lines.length - 1], pending.text);
+    reveal(lines[lines.length - 1], pending.text);
   }
   chat.scrollTop = chat.scrollHeight;
 }
 
-function typewrite(el, text) {
+// Words appear quickly rather than letter by letter: readable, not gimmicky.
+function reveal(el, text) {
   if (!el) return;
-  // Time-based, so it catches up even if the browser throttles timers.
+  const words = text.split(/(\s+)/);
   const started = performance.now();
-  let i = 0;
   const step = () => {
-    i = Math.min(text.length, Math.ceil((performance.now() - started) / 12));
-    el.textContent = text.slice(0, i);
+    const i = Math.min(words.length, Math.ceil((performance.now() - started) / 22));
+    el.textContent = words.slice(0, i).join("");
     $("#chat").scrollTop = $("#chat").scrollHeight;
-    if (i < text.length) el._timer = setTimeout(step, 18);
+    if (i < words.length) setTimeout(step, 16);
   };
-  el.addEventListener("click", () => {
-    clearTimeout(el._timer);
-    el.textContent = text;
-  });
   step();
 }
 
@@ -189,80 +202,87 @@ const SVG = (tag, attrs, inner = "") =>
 
 function renderMap() {
   const { map, crime } = state.case;
+  const u = map.width / 600;
   const svg = $("#map");
   svg.setAttribute("viewBox", `0 0 ${map.width} ${map.height}`);
   let out = "";
 
-  for (const r of map.roads) {
-    const a = place(r.from);
-    const b = place(r.to);
-    out += SVG("line", { class: "road", x1: a.x, y1: a.y, x2: b.x, y2: b.y }, `<title>${esc(r.name)}: ${r.minutes} min</title>`);
-    out += SVG("text", { class: "road-label", x: (a.x + b.x) / 2 + 6, y: (a.y + b.y) / 2 - 6 }, `${r.minutes}m`);
+  const { zoom, left, top } = map.tiles;
+  out += `<g class="tiles">`;
+  for (let tx = Math.floor(left / 256); tx <= Math.floor((left + map.width) / 256); tx++) {
+    for (let ty = Math.floor(top / 256); ty <= Math.floor((top + map.height) / 256); ty++) {
+      out += SVG("image", { href: `/tiles/${zoom}/${tx}/${ty}.png`, x: tx * 256 - left, y: ty * 256 - top, width: 256.6, height: 256.6, preserveAspectRatio: "none" });
+    }
   }
+  out += `</g>`;
 
   if (state.highlight?.path?.length > 1) {
-    const pts = state.highlight.path.map((id) => `${place(id).x},${place(id).y}`).join(" ");
-    out += SVG("polyline", { class: `route ${state.highlight.kind}`, points: pts });
+    const pts = state.highlight.path.map(nodeXY).filter(Boolean).map((n) => `${n.x},${n.y}`).join(" ");
+    out += SVG("polyline", { points: pts, fill: "none", stroke: "#fff", "stroke-width": 9 * u, "stroke-linecap": "round", "stroke-linejoin": "round" });
+    out += SVG("polyline", { class: `route ${state.highlight.kind}`, points: pts, "stroke-width": 4.5 * u, ...(state.highlight.kind === "check" && { "stroke-dasharray": `${10 * u} ${7 * u}` }) });
   }
 
-  for (const p of map.places) {
-    const isCrime = p.id === crime.place;
-    const below = p.y < map.height - 60;
-    const anchor = p.x < 90 ? "start" : p.x > map.width - 90 ? "end" : "middle";
-    const tx = anchor === "start" ? p.x - 10 : anchor === "end" ? p.x + 10 : p.x;
-    const ty = below ? p.y + 25 : p.y - 30;
-    const picked = state.pick.includes(p.id);
-    out += `<g class="place${isCrime ? " crime" : ""}${picked ? " picked" : ""}" data-place="${p.id}">
-      ${isCrime ? SVG("circle", { class: "pulse", cx: p.x, cy: p.y, r: 9 }) : ""}
-      ${SVG("circle", { class: "node", cx: p.x, cy: p.y, r: 9 }, `<title>${esc(p.name)}, ${esc(p.area)}</title>`)}
-      ${SVG("text", { x: tx, y: ty, "text-anchor": anchor }, esc(p.name))}
-      ${SVG("text", { class: "area", x: tx, y: ty + 13, "text-anchor": anchor }, esc(p.area))}
-    </g>`;
-  }
-
-  // Pins: what people said (circles) and what evidence shows (squares).
   const pins = new Map();
   const add = (pt) => pins.set(pt.place, [...(pins.get(pt.place) ?? []), pt]);
   for (const e of state.case.evidence) {
-    for (const f of e.facts ?? []) add({ ...f, time: toMin(f.time), source: "fact", evidence: e.title });
+    for (const f of e.facts ?? []) {
+      const time = toMin(f.time);
+      add({ ...f, time, until: time, source: "fact", evidence: e.title });
+    }
   }
   for (const c of state.claims) add(c);
+  let pinsOut = "";
   for (const [pid, list] of pins) {
     const p = place(pid);
-    const left = p.x > map.width - 110;
+    const toLeft = p.x > map.width - 140 * u;
     list.sort((a, b) => a.time - b.time);
     list.forEach((pt, i) => {
       const s = pt.suspect ? suspect(pt.suspect) : null;
-      const color = s?.color ?? "#b8ae98";
-      // Stack pins away from the place label (labels sit below, or above near the bottom edge).
-      const labelBelow = p.y < map.height - 60;
-      const x = left ? p.x - 52 : p.x + 15;
-      const y = labelBelow ? p.y - 12 - (list.length - 1 - i) * 18 : p.y - 6 + i * 18;
-      const dim = s && s.id !== state.active ? 0.4 : 1;
-      const who = s ? s.name : "Unknown";
-      const what = pt.source === "fact" ? `${pt.evidence}: ${pt.label}` : `said: ${pt.label}`;
-      out += `<g class="pin" opacity="${dim}">
-        ${SVG("rect", { x, y, width: 38, height: 15, rx: pt.source === "fact" ? 2 : 7.5, fill: color, stroke: pt.source === "fact" ? "#0e0d0b" : "none" }, `<title>${esc(who)} · ${esc(fmt(pt.time))} · ${esc(what)}</title>`)}
-        ${SVG("text", { x: x + 19, y: y + 11, "text-anchor": "middle" }, esc(fmt(pt.time).replace(" PM", "").replace(" AM", "a")))}
+      const label = spanShort(pt);
+      const w = (label.length * 6 + 12) * u;
+      const h = 16 * u;
+      const x = toLeft ? p.x - 14 * u - w : p.x + 14 * u;
+      const y = p.y - h / 2 - (list.length - 1 - i) * (h + 3 * u);
+      const dim = s && s.id !== state.active ? 0.3 : 1;
+      const fact = pt.source === "fact";
+      const color = s?.color ?? "#667085";
+      const what = fact ? `${pt.evidence}: ${pt.label}` : `Statement: ${pt.label}`;
+      pinsOut += `<g class="pin" opacity="${dim}">
+        ${SVG("rect", { x, y, width: w, height: h, rx: 3 * u, fill: fact ? "#fff" : color, stroke: fact ? color : "none", "stroke-width": 1.4 * u }, `<title>${esc(s?.name ?? "Unidentified")} · ${esc(label)} · ${esc(what)}</title>`)}
+        ${SVG("text", { x: x + w / 2, y: y + h / 2 + 3.8 * u, "text-anchor": "middle", "font-size": 10.5 * u, fill: fact ? "#344054" : "#fff" }, esc(label))}
       </g>`;
     });
   }
-  svg.innerHTML = out;
+
+  for (const p of map.places) {
+    const scene = p.id === crime.place;
+    const r = 6.5 * u;
+    const lw = (p.name.length * 6.1 + 14) * u;
+    const ly = p.y + r + 5 * u;
+    out += `<g class="place${scene ? " scene" : ""}${state.pick.includes(p.id) ? " picked" : ""}" data-place="${p.id}">
+      ${SVG("circle", { cx: p.x, cy: p.y, r: 18 * u, fill: "transparent" })}
+      ${SVG("circle", { class: "dot", cx: p.x, cy: p.y, r, "stroke-width": (scene ? 3 : 2.2) * u }, `<title>${esc(p.name)} · ${esc(p.cornerName)}</title>`)}
+      ${SVG("rect", { class: "label-bg", x: p.x - lw / 2, y: ly, width: lw, height: 17 * u, rx: 3 * u, "stroke-width": 0.8 * u })}
+      ${SVG("text", { x: p.x, y: ly + 12 * u, "text-anchor": "middle", "font-size": 10.5 * u }, esc(p.name))}
+    </g>`;
+  }
+  svg.innerHTML = out + pinsOut;
 }
 
-function renderAlerts() {
+function renderFindings() {
   const items = [
     ...state.contradictions.map((x) => ({ ...x, kind: "contradiction" })),
     ...state.suspicions.map((x) => ({ ...x, kind: "suspicion" })),
   ].reverse();
+  $("#findings-count").textContent = items.length ? `${items.length}` : "";
   $("#alerts").innerHTML = items.length
     ? items
         .map(
-          (x) => `<button class="alert-card ${x.kind}${state.highlight?.id === x.id ? " active" : ""}" data-alert="${x.id}">
-            <span class="kind">${x.kind === "contradiction" ? "ALIBI DOESN'T ADD UP" : "SUSPICIOUS ROUTE"}</span>${esc(x.text)}</button>`,
+          (x) => `<button class="finding ${x.kind}${state.highlight?.id === x.id ? " active" : ""}" data-alert="${x.id}">
+            <span class="kind">${x.kind === "contradiction" ? "Inconsistency" : "Route of interest"} · ${esc(suspect(x.suspect).name)}</span>${esc(x.text)}</button>`,
         )
         .join("")
-    : `<p class="muted">No contradictions yet. Ask about times and places.</p>`;
+    : `<p class="empty">No findings yet. Statements are checked automatically as they are recorded.</p>`;
 }
 
 function renderTimeline() {
@@ -270,31 +290,33 @@ function renderTimeline() {
   $("#timeline-who").textContent = s.name;
   const points = [
     ...state.case.evidence.flatMap((e) =>
-      (e.facts ?? []).filter((f) => f.suspect === s.id).map((f) => ({ ...f, time: toMin(f.time), source: "fact", evidence: e.title })),
+      (e.facts ?? [])
+        .filter((f) => f.suspect === s.id)
+        .map((f) => ({ ...f, time: toMin(f.time), until: toMin(f.time), source: "fact", evidence: e.title })),
     ),
     ...state.claims.filter((c) => c.suspect === s.id),
   ].sort((a, b) => a.time - b.time);
   $("#timeline").innerHTML = points.length
     ? points
         .map(
-          (p) => `<li class="${p.source}" style="--sc:${esc(s.color)}"><span class="t">${fmt(p.time)}</span>${esc(place(p.place).name)}: ${esc(p.label)}
-            <span class="src">(${p.source === "fact" ? esc(p.evidence) : "said in interview"})</span></li>`,
+          (p) => `<li><span class="t">${esc(span(p))}</span><span><span class="kindtag">${p.source === "fact" ? "Evidence" : "Stated"}</span>${esc(place(p.place).name)}
+            <span class="src">${p.source === "fact" ? esc(p.evidence) : p.label && p.label !== "said so" ? `“${esc(p.label)}”` : "Interview statement"}</span></span></li>`,
         )
         .join("")
-    : `<li class="muted">Nothing yet.</li>`;
+    : `<li><span class="empty">No entries for ${esc(firstName(s))} yet.</span></li>`;
 }
 
 function renderEvidence() {
   const s = suspect(state.active);
+  $("#evidence-count").textContent = `${state.case.evidence.length} items`;
   $("#evidence").innerHTML = state.case.evidence
     .map(
       (e) => `<div class="ev"><h3>${esc(e.title)}</h3><p>${esc(e.detail)}</p>
-        <button type="button" data-evidence="${e.id}">Show to ${esc(firstName(s))}</button></div>`,
+        <button type="button" class="btn" data-evidence="${e.id}">Present to ${esc(firstName(s))}</button></div>`,
     )
     .join("");
-  const chip = $("#evidence-chip");
   const ev = state.case.evidence.find((e) => e.id === state.evidence);
-  chip.hidden = !ev;
+  $("#evidence-chip").hidden = !ev;
   if (ev) $("#evidence-chip-title").textContent = ev.title;
 }
 
@@ -304,11 +326,12 @@ $("#suspects").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-suspect]");
   if (!btn) return;
   state.active = btn.dataset.suspect;
-  renderSuspects();
-  renderChat();
+  renderSubjects();
+  renderTranscript();
   renderMap();
   renderTimeline();
   renderEvidence();
+  $("#question").focus();
 });
 
 $("#quick").addEventListener("click", (e) => {
@@ -326,7 +349,7 @@ $("#evidence").addEventListener("click", (e) => {
   state.evidence = btn.dataset.evidence;
   renderEvidence();
   $("#question").focus();
-  if (!$("#question").value) $("#question").value = "Explain this.";
+  if (!$("#question").value) $("#question").value = "Can you explain this?";
 });
 $("#evidence-chip-clear").addEventListener("click", () => {
   state.evidence = null;
@@ -338,7 +361,7 @@ $("#ask-form").addEventListener("submit", async (e) => {
   if (state.busy) return;
   const question = $("#question").value.trim();
   if (!question) {
-    $("#ask-error").textContent = "Type a question first.";
+    $("#ask-error").textContent = "Enter a question first.";
     $("#ask-error").hidden = false;
     return;
   }
@@ -348,27 +371,27 @@ $("#ask-form").addEventListener("submit", async (e) => {
   state.busy = true;
   $("#btn-ask").disabled = true;
   $("#question").value = "";
-  chat.push({ kind: "detective", text: question, shown: evidence?.title });
-  const typing = { kind: "typing" };
-  chat.push(typing);
-  renderChat();
+  chat.push({ kind: "me", text: question, shown: evidence?.title });
+  const pending = { kind: "pending" };
+  chat.push(pending);
+  renderTranscript();
 
   try {
     const r = await api("POST", "/api/ask", { sessionId: state.sessionId, suspectId, question, evidenceId: evidence?.id });
-    chat.splice(chat.indexOf(typing), 1);
-    chat.push({ kind: "suspect", text: r.reply, tell: r.tell, claims: r.claims, animate: suspectId === state.active });
+    chat.splice(chat.indexOf(pending), 1);
+    chat.push({ kind: "them", text: r.reply, tell: r.tell, claims: r.claims, animate: suspectId === state.active });
     state.stress[suspectId] = r.stress;
     state.claims.push(...r.claims);
     state.contradictions.push(...r.contradictions);
     state.suspicions.push(...r.suspicions);
-    for (const x of r.contradictions) chat.push({ kind: "alert", text: `🚨 Alibi doesn't add up. ${x.text}` });
-    for (const x of r.suspicions) chat.push({ kind: "warn", text: `⚠️ ${x.text}` });
+    for (const x of r.contradictions) chat.push({ kind: "alert", title: "Inconsistency detected", text: x.text });
+    for (const x of r.suspicions) chat.push({ kind: "warn", title: "Route of interest", text: x.text });
     const latest = r.contradictions.at(-1) ?? r.suspicions.at(-1);
     if (latest) state.highlight = { id: latest.id, kind: r.contradictions.length ? "contradiction" : "suspicion", path: latest.path };
     state.evidence = null;
   } catch (err) {
-    chat.splice(chat.indexOf(typing), 1);
-    chat.push({ kind: "system", text: `⚠️ ${err.message}` });
+    chat.splice(chat.indexOf(pending), 1);
+    chat.push({ kind: "error", title: "Request failed", text: err.message });
   } finally {
     state.busy = false;
     $("#btn-ask").disabled = false;
@@ -394,16 +417,15 @@ $("#map").addEventListener("click", async (e) => {
   if (state.pick.length === 2) {
     const [from, to] = state.pick;
     try {
-      const params = new URLSearchParams({ sessionId: state.sessionId, from, to });
-      const r = await api("GET", `/api/route?${params}`);
+      const r = await api("GET", `/api/route?${new URLSearchParams({ sessionId: state.sessionId, from, to })}`);
       state.highlight = { id: null, kind: "check", path: r.path };
-      $("#route-readout").innerHTML = `<b>${esc(place(from).name)} → ${esc(place(to).name)}: ${r.minutes} min</b> via ${esc(r.roads.join(", "))}`;
+      $("#route-readout").innerHTML = `${esc(place(from).name)} → ${esc(place(to).name)}: <b>${Math.round(r.minutes)} min</b> walk`;
     } catch (err) {
       $("#route-readout").textContent = err.message;
     }
     state.pick = [];
   } else if (state.pick.length === 1) {
-    $("#route-readout").innerHTML = `From <b>${esc(place(id).name)}</b>, now click a second place.`;
+    $("#route-readout").textContent = `From ${place(id).name}. Select a second location.`;
   }
   renderMap();
 });
@@ -412,24 +434,24 @@ $("#map").addEventListener("click", async (e) => {
 
 function openBriefing() {
   const c = state.case;
+  $("#briefing-kicker").textContent = `${c.category} · ${c.area}`;
   $("#briefing-title").textContent = c.title;
   $("#briefing-text").textContent = c.briefing;
   $("#briefing-people").innerHTML = c.suspects
-    .map((s) => `<div class="person" style="--sc:${esc(s.color)}"><b>${esc(s.name)}: ${esc(s.role)}</b>${esc(s.bio)}</div>`)
+    .map((s) => `<div class="person">${badge(s)}<div><b>${esc(s.name)}</b><span>${esc(s.role)}</span></div></div>`)
     .join("");
   $("#briefing-dialog").showModal();
 }
 $("#btn-briefing").addEventListener("click", openBriefing);
-$("#btn-cases").addEventListener("click", showStart);
+$("#btn-cases").addEventListener("click", () => showWorkspace(false));
 
 $("#btn-accuse").addEventListener("click", () => {
-  const c = state.case;
-  $("#accuse-heading").textContent = `${c.labels.accuse}: who's lying?`;
-  $("#accuse-options").innerHTML = c.suspects
+  $("#accuse-heading").textContent = $("#btn-accuse").textContent;
+  $("#accuse-options").innerHTML = state.case.suspects
     .map((s) => {
       const n = state.contradictions.filter((x) => x.suspect === s.id).length;
-      return `<button data-accuse="${s.id}" style="--sc:${esc(s.color)}"><b>${esc(s.name)}</b>
-        <small>${n ? `${n} impossible alibi${n > 1 ? "s" : ""} on record` : "No contradictions on record"}</small></button>`;
+      return `<button data-accuse="${s.id}">${badge(s)}<span><b>${esc(s.name)}</b>
+        <small>${n ? `${n} inconsistenc${n > 1 ? "ies" : "y"} on record` : "No inconsistencies on record"}</small></span></button>`;
     })
     .join("");
   $("#accuse-pick").hidden = false;
@@ -442,11 +464,15 @@ $("#accuse-options").addEventListener("click", async (e) => {
   if (!btn) return;
   try {
     const r = await api("POST", "/api/accuse", { sessionId: state.sessionId, suspectId: btn.dataset.accuse });
+    $("#result-kicker").textContent = { win: "Outcome", weak: "Insufficient evidence", wrong: "Outcome" }[r.outcome];
     $("#result-title").textContent = r.title;
     $("#result-title").className = r.outcome;
     $("#result-text").textContent = r.text;
+    $("#result-proof-title").hidden = !r.proof?.length;
     $("#result-proof").innerHTML = (r.proof ?? []).map((p) => `<li>${esc(p)}</li>`).join("");
     $("#result-solution").textContent = r.solution ?? "";
+    $("#result-solution").previousElementSibling.hidden = !r.solution;
+    $("#result-stats").textContent = r.outcome === "weak" ? "" : `${r.stats.questions} question${r.stats.questions === 1 ? "" : "s"} asked.`;
     $("#btn-result-new").hidden = r.outcome === "weak";
     $("#accuse-pick").hidden = true;
     $("#accuse-result").hidden = false;
@@ -457,7 +483,7 @@ $("#accuse-options").addEventListener("click", async (e) => {
 $("#btn-result-close").addEventListener("click", () => $("#accuse-dialog").close());
 $("#btn-result-new").addEventListener("click", () => {
   $("#accuse-dialog").close();
-  showStart();
+  showWorkspace(false);
 });
 
 boot();

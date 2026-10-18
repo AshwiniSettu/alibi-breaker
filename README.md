@@ -2,14 +2,14 @@
 
 A detective game where AI suspects lie, and a map proves it.
 
-You question suspects. Every place and time they mention is pinned on a San Francisco map. When someone's story is physically impossible ("I left Joe's at 9:10 and was home by 9:15", but the drive takes 22 minutes), the game flags it. Catch the liar, then accuse.
+You question suspects. Every place and time they mention is pinned on a real San Francisco street map (OpenStreetMap). When someone's story is physically impossible ("I was at Joe's Café until 9:10 and home by 9:15", but the walk takes 18 minutes), or they claim to have been somewhere "the whole time" while a receipt puts them across the neighborhood, the game flags it. Catch the liar, then accuse.
 
 It ships with two cases:
 
 | Case | You are | The lie |
 |---|---|---|
-| **The Union Square Heist** | Detective | A diamond thief's alibi doesn't fit the drive times |
-| **The Marina Hit-and-Run Claim** | Insurance claims investigator | A claimant says the car never moved, but the gas receipt is across town |
+| **The North Beach Heist** 💎 | Detective | A diamond thief's alibi doesn't fit the walk down Stockton Street |
+| **The Valencia Street Hit-and-Run Claim** 🚗 | Insurance claims investigator | A claimant "never left dinner", but his card bought ice by Dolores Park |
 
 ## How it works: two brains plus a map
 
@@ -26,7 +26,7 @@ FAST model ── note-taker: pulls out {place, time}, stress level, a body-lang
 Plain code ── checks every claim against the map + evidence (no AI, so it's always right)
    │
    ▼
-🚨 "Said Joe's Café at 9:10 and Kestrel Tower at 9:15. The drive takes 22 min."
+🚨 "Marco said Joe's Café until 9:10 and Kestrel Court at 9:15. The walk takes 18 min."
 ```
 
 Two safety checks keep the game fair: a claim only counts if the suspect actually named that place and said that time in the answer. Small models sometimes invent places, and this stops them from framing an innocent person.
@@ -96,7 +96,8 @@ Key fields:
 
 | Field | What it is |
 |---|---|
-| `map` | Which file in `maps/` to use (`sf-basic`) |
+| `map` | Which street map in `maps/` to use (`sf-north-beach`, `sf-mission`, `sf-alamo-square`) |
+| `places` | The case's places, each on a real corner: `"corner": ["Stockton Street", "Union Street"]` |
 | `labels` | Wording: "Detective" vs "Claims investigator", "Accuse" vs "Flag as fraud" |
 | `crime` | Where and when the incident happened (shown on the map) |
 | `watch` | Optional. A place and time window. A suspect's route passing through it gets flagged as suspicious. |
@@ -107,23 +108,21 @@ Key fields:
 | `evidence[].facts` | Hard facts: `{ suspect, place, time }`. The checker uses these. |
 | `suspects[].mock` | Scripted lines for mock mode |
 
-**Design tip:** write the guilty suspect's `cover` so it's impossible on the map, and give innocent suspects stories that fit the drive times. Innocent suspects should still hide *something* (a forgotten alarm, a skipped shift). That makes them nervous, which makes them good red herrings.
+**Design tip:** write the guilty suspect's `cover` so it's impossible on the map, and give innocent suspects stories that fit the walking times. Innocent suspects should still hide *something* (a forgotten alarm, a skipped shift). That makes them nervous, which makes them good red herrings.
 
 If a case file has a mistake (an unknown place id, a bad time format), the game tells you exactly what's wrong when you open it.
 
-## Swap in a real SF map
+## The maps
 
-`maps/sf-basic.json` is a simplified graph: places with x/y positions, and roads with drive minutes. To use your real SF map, export it to the same shape:
+The street maps come from the [Inference Rally](https://github.com/divyachandana/Inference-Rally) project, built from OpenStreetMap: a 7×7 grid of real named streets per neighborhood, plus offline map tiles in `maps/tiles`. Walking time is 80 m per minute along real streets (`src/map.js`).
 
-```json
-{
-  "width": 800, "height": 520,
-  "places": [{ "id": "cafe", "name": "Joe's Café", "area": "North Beach", "x": 330, "y": 70, "aliases": ["joe's"] }],
-  "roads":  [{ "from": "cafe", "to": "jewelers", "minutes": 12, "name": "Stockton Street" }]
-}
+To add a neighborhood, fetch it with Inference Rally's `scripts/fetch_map.py`, then convert it:
+
+```bash
+node scripts/import-rally-map.mjs ../Inference-Rally/maps/sf-my-area.json
 ```
 
-All drive times come from `src/map.js` (`shortestPath`). Replace that function to use real routing, such as OSRM or your map project's router.
+and copy its new tiles from `Inference-Rally/maps/tiles` into `maps/tiles`. Map data © OpenStreetMap contributors (ODbL).
 
 ## Files
 
@@ -131,10 +130,11 @@ All drive times come from `src/map.js` (`shortestPath`). Replace that function t
 server.js          HTTP server + API
 src/llm.js         the model switch (claude / ollama / local / mock)
 src/game.js        prompts, one interrogation turn, the alibi checker
-src/map.js         road graph + shortest drive time
+src/map.js         street graph + shortest walking time
 src/case.js        loads and validates case files
 src/mock.js        scripted suspects + regex note-taker (no AI)
 cases/*.json       the cases
-maps/*.json        the maps
+maps/*.json        street maps (corners + streets), maps/tiles = map pictures
+scripts/           import-rally-map.mjs (Inference Rally map -> Alibi Breaker map)
 public/            the game UI
 ```

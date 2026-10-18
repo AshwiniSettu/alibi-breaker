@@ -1,6 +1,7 @@
-// Loads case files from cases/*.json and the map each one points at
-// (maps/<name>.json). Case files are re-read on every new game, so you can
-// edit a case and just click "New game".
+// Loads case files from cases/*.json and the street map each one points at
+// (maps/<name>.json, made from OpenStreetMap by scripts/import-rally-map.mjs).
+// A case puts its places (Joe's Café, the jewelers...) on real street corners.
+// Case files are re-read on every new game, so you can edit and click "New game".
 
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -26,7 +27,16 @@ export async function listCases() {
   for (const file of files) {
     try {
       const c = await readJson(path.join(casesDir, file));
-      cases.push({ id: c.id, title: c.title, category: c.category ?? "Case", tagline: c.tagline ?? "" });
+      cases.push({
+        id: c.id,
+        title: c.title,
+        category: c.category ?? "Case",
+        tagline: c.tagline ?? "",
+        icon: c.icon ?? "🕵️",
+        area: c.area ?? "",
+        subjects: c.suspects?.length ?? 0,
+        evidence: c.evidence?.length ?? 0,
+      });
     } catch (err) {
       console.warn(`Skipping ${file}: ${err.message}`);
     }
@@ -34,17 +44,41 @@ export async function listCases() {
   return cases;
 }
 
+const norm = (s) => s.toLowerCase().replace(/\b(street|st|avenue|ave)\b\.?/g, "").replace(/\s+/g, " ").trim();
+
+function findCorner(map, corner) {
+  if (typeof corner === "string") return map.corners.find((c) => c.id === corner);
+  const [a, b] = corner.map(norm);
+  return map.corners.find((c) => {
+    const streets = c.streets.map(norm);
+    return streets.includes(a) && streets.includes(b);
+  });
+}
+
 export async function loadCase(id) {
   if (!SAFE_ID.test(id ?? "")) throw new Error(`Bad case id "${id}"`);
   const data = await readJson(path.join(casesDir, `${id}.json`));
-  if (typeof data.map === "string" && !SAFE_ID.test(data.map)) throw new Error(`Bad map id "${data.map}"`);
-  const map = typeof data.map === "string" ? await readJson(path.join(mapsDir, `${data.map}.json`)) : data.map;
+  if (!SAFE_ID.test(data.map ?? "")) throw new Error(`Case "${id}": bad map id "${data.map}"`);
+  const map = await readJson(path.join(mapsDir, `${data.map}.json`));
+
+  const problems = [];
+  const places = data.places.map((p) => {
+    const corner = findCorner(map, p.corner);
+    if (!corner) problems.push(`place ${p.id}: no corner ${JSON.stringify(p.corner)} on ${map.name}`);
+    return { ...p, cornerId: corner?.id, cornerName: corner?.name, x: corner?.x, y: corner?.y };
+  });
+  if (problems.length) throw new Error(`Case "${id}" has problems:\n- ${problems.join("\n- ")}`);
+
+  // Places hang off their corner with a zero-minute link, so routes run on real streets.
+  const nodes = [...map.corners, ...places];
+  const roads = [...map.roads, ...places.map((p) => ({ from: p.id, to: p.cornerId, minutes: 0, name: null }))];
+
   const c = {
     labels: { role: "Detective", subjects: "Suspects", accuse: "Accuse", win: "Case closed", wrong: "Wrong suspect" },
     ...data,
-    map,
-    graph: buildGraph(map),
-    places: new Map(map.places.map((p) => [p.id, p])),
+    map: { ...map, places },
+    graph: buildGraph({ places: nodes, roads }),
+    places: new Map(places.map((p) => [p.id, p])),
   };
   c.watch ??= { place: c.crime.place, window: c.crime.window, label: c.crime.label };
   validate(c);
@@ -57,10 +91,6 @@ function validate(c) {
     if (id != null && !c.places.has(id)) problems.push(`${where}: unknown place "${id}"`);
   };
   const suspects = new Set(c.suspects.map((s) => s.id));
-  for (const road of c.map.roads) {
-    place(road.from, `road ${road.name}`);
-    place(road.to, `road ${road.name}`);
-  }
   place(c.crime.place, "crime");
   place(c.watch.place, "watch");
   for (const s of c.suspects) {
@@ -86,18 +116,22 @@ export function publicCase(c) {
     id: c.id,
     title: c.title,
     category: c.category,
+    icon: c.icon,
+    area: c.area,
     labels: c.labels,
     briefing: c.briefing,
-    crime: { place: c.crime.place, time: c.crime.time, label: c.crime.label },
+    crime: { place: c.crime.place, time: c.crime.time, label: c.crime.label, icon: c.crime.icon },
     map: {
       name: c.map.name,
-      note: c.map.note,
+      attribution: c.map.attribution,
+      travel: c.map.travel,
       width: c.map.width,
       height: c.map.height,
-      places: c.map.places.map(({ id, name, area, x, y }) => ({ id, name, area, x, y })),
-      roads: c.map.roads,
+      tiles: c.map.tiles,
+      corners: c.map.corners.map(({ id, name, x, y }) => ({ id, name, x, y })),
+      places: c.map.places.map(({ id, name, icon, cornerName, x, y }) => ({ id, name, icon, cornerName, x, y })),
     },
-    suspects: c.suspects.map(({ id, name, role, color, bio }) => ({ id, name, role, color, bio })),
+    suspects: c.suspects.map(({ id, name, role, color, bio, avatar }) => ({ id, name, role, color, bio, avatar })),
     evidence: c.evidence,
   };
 }

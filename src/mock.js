@@ -23,7 +23,10 @@ export function mentionsPlace(caseData, suspect, placeId, reply) {
   const place = caseData.places.get(placeId);
   const words = [place.name.toLowerCase(), ...(place.aliases ?? [])];
   if (placeId === suspect.home) words.push(...HOME_WORDS);
-  return words.some((w) => text.includes(w));
+  if (words.some((w) => text.includes(w))) return true;
+  // "the corner of Stockton and Union" names the corner the place is on.
+  const streets = (place.cornerName ?? "").toLowerCase().split(" & ").map((s) => s.replace(/ (st|ave|blvd)$/, ""));
+  return streets.length === 2 && streets.every((s) => text.includes(s));
 }
 
 // Was this time actually said in the answer (not just in the question)?
@@ -35,6 +38,7 @@ export function statesTime(reply, minutes) {
   if (said.includes(minutes % 720)) return true;
   return /\b(later|earlier than|minutes?|hours?|half past|quarter)\b/i.test(reply);
 }
+
 const TELLS = {
   calm: ["leans back in the chair", "answers without blinking", "shrugs"],
   uneasy: ["glances at the door", "taps a finger on the table", "clears throat"],
@@ -65,8 +69,18 @@ export function mockNotes({ caseData, suspect, question, reply, prevStress }) {
     const before = mentions.filter((m) => m.idx < match.index).sort((a, b) => b.idx - a.idx);
     const sameSentence = before.find((m) => sentenceOf(m.idx) === sentence);
     const after = mentions.filter((m) => m.idx > match.index && sentenceOf(m.idx) === sentence).sort((a, b) => a.idx - b.idx)[0];
-    const pick = sameSentence ?? after ?? before[0];
-    if (pick) claims.push({ place: pick.place, time, label: "said so" });
+    // "I got there around 8:25" refers back to the last place named.
+    const pick = sameSentence ?? before[0] ?? after;
+    if (!pick) continue;
+    // "from 8:30 until 10:20" at the same place is one stay, not two moments.
+    const prev = claims.at(-1);
+    const between = prev ? text.slice(prev.end, match.index) : "";
+    if (prev && prev.place === pick.place && prev.sentence === sentence && /\b(until|till|to)\b/.test(between)) {
+      prev.until = time;
+      prev.end = match.index + match[0].length;
+      continue;
+    }
+    claims.push({ place: pick.place, time, until: "", label: "said so", sentence, end: match.index + match[0].length });
   }
 
   const q = question.toLowerCase();
@@ -74,5 +88,9 @@ export function mockNotes({ caseData, suspect, question, reply, prevStress }) {
   const pressured = suspect.mock?.triggers?.some((t) => q.includes(t));
   const stress = Math.min(100, prevStress + (cornered ? 30 : pressured ? 15 : 4));
   const band = stress > 65 ? TELLS.scared : stress > 35 ? TELLS.uneasy : TELLS.calm;
-  return { claims, stress, tell: band[Math.floor(Math.random() * band.length)] };
+  return {
+    claims: claims.map(({ place, time, until, label }) => ({ place, time, until, label })),
+    stress,
+    tell: band[Math.floor(Math.random() * band.length)],
+  };
 }
