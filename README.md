@@ -8,6 +8,7 @@ It ships with two cases:
 
 | Case | You are | The lie |
 |---|---|---|
+| **The Missing Demo Laptop** | Detective | ExecuTorch Hackathon at Founders, Inc.: Team Watchout Guardian AI's Copilot+ PC vanishes overnight. The suspects are the three judges, Adam, Derrick and Nick. |
 | **The Fort Mason Demo Day Theft** | Detective | A prototype taken at Pier 2, next to the Founders, Inc. campus; one subject "never left" Building C |
 | **The North Beach Heist** 💎 | Detective | A diamond thief's alibi doesn't fit the walk down Stockton Street |
 | **The Valencia Street Hit-and-Run Claim** 🚗 | Insurance claims investigator | A claimant "never left dinner", but his card bought ice by Dolores Park |

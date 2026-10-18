@@ -179,6 +179,7 @@ export async function ask(session, { suspectId, question, evidenceId }) {
   const stress = Math.max(0, Math.min(100, Math.round(Number(notes.stress) || prevStress)));
   session.stress[suspect.id] = stress;
 
+  const stays = statedStays(reply);
   const newClaims = [];
   for (const claim of Array.isArray(notes.claims) ? notes.claims : []) {
     if (!c.places.has(claim.place) || !HHMM.test(claim.time ?? "")) continue;
@@ -188,6 +189,9 @@ export async function ask(session, { suspectId, question, evidenceId }) {
     if (!statesTime(reply, time)) continue;
     let until = HHMM.test(claim.until ?? "") ? toMin(claim.until) : time;
     if (until < time || !statesTime(reply, until)) until = time;
+    // Small note-takers often drop the end of "from 10:30 to 11:15". If the answer
+    // literally states that range starting at this claim's time, keep the whole stay.
+    if (until === time) until = stays.find((s) => s.start === time)?.end ?? time;
     const duplicate = session.claims.some((x) => x.suspect === suspect.id && x.place === claim.place && x.time === time && x.until === until);
     if (duplicate) continue;
     const record = {
@@ -215,6 +219,20 @@ export async function ask(session, { suspectId, question, evidenceId }) {
     contradictions,
     suspicions,
   };
+}
+
+// "from 10:30 to 11:15", "from about 8 until 9:10" -> [{start, end}] in evening minutes.
+function statedStays(reply) {
+  const clock = String.raw`(\d{1,2})(?::(\d{2}))?\s*(?:pm|p\.m\.)?`;
+  const re = new RegExp(String.raw`\bfrom\s+(?:about\s+|around\s+)?${clock}\s+(?:to|until|till|'til)\s+(?:about\s+|around\s+)?${clock}`, "gi");
+  const evening = (h, m) => (Number(h) % 12) * 60 + Number(m ?? 0) + 12 * 60;
+  const stays = [];
+  for (const [, h1, m1, h2, m2] of reply.matchAll(re)) {
+    const start = evening(h1, m1);
+    const end = evening(h2, m2);
+    if (end > start) stays.push({ start, end });
+  }
+  return stays;
 }
 
 // Pick up a piece of evidence (cases with collectEvidence). Its facts are
