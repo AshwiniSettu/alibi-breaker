@@ -4,10 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config, LLMError, warmUp } from "./src/llm.js";
 import { listCases, loadCase, publicCase } from "./src/case.js";
-import { accuse, ask, createSession, getSession, route } from "./src/game.js";
+import { accuse, ask, collect, createSession, getSession, route } from "./src/game.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(here, "public");
+const tilesDir = path.join(here, "maps", "tiles");
 const PORT = Number(process.env.PORT ?? 3000);
 const TYPES = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png" };
 
@@ -30,11 +31,16 @@ async function readBody(req) {
 }
 
 async function serveStatic(res, pathname) {
-  const file = path.normalize(path.join(publicDir, pathname === "/" ? "index.html" : pathname));
-  if (!file.startsWith(publicDir)) return send(res, 403, { error: "Forbidden" });
+  // Map tiles live in maps/tiles (OpenStreetMap pictures, served offline).
+  const [dir, rel] = pathname.startsWith("/tiles/") ? [tilesDir, pathname.slice("/tiles".length)] : [publicDir, pathname === "/" ? "index.html" : pathname];
+  const file = path.normalize(path.join(dir, rel));
+  if (!file.startsWith(dir)) return send(res, 403, { error: "Forbidden" });
   try {
     const data = await readFile(file);
-    res.writeHead(200, { "content-type": TYPES[path.extname(file)] ?? "application/octet-stream" });
+    res.writeHead(200, {
+      "content-type": TYPES[path.extname(file)] ?? "application/octet-stream",
+      ...(dir === tilesDir && { "cache-control": "public, max-age=86400" }),
+    });
     res.end(data);
   } catch {
     send(res, 404, { error: "Not found" });
@@ -51,6 +57,7 @@ const routes = {
   },
   "POST /api/ask": async (body) => ask(getSession(body.sessionId), body),
   "POST /api/accuse": async (body) => accuse(getSession(body.sessionId), body.suspectId),
+  "POST /api/collect": async (body) => collect(getSession(body.sessionId), body.evidenceId),
   "GET /api/route": async (_body, url) =>
     route(getSession(url.searchParams.get("sessionId")), url.searchParams.get("from"), url.searchParams.get("to")),
 };
