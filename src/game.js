@@ -324,12 +324,14 @@ function findSuspicions(session, suspect) {
     if (p.source !== "claim" || p.time > end + 10 || p.until < start - 10) continue;
     const away = dist(c, p.place, watch.place);
     if (away > NEAR_MIN) continue;
-    add(`${suspect.id}|near|${p.place}@${p.time}`, {
+    const when = p.until > p.time ? `from ${fmt(p.time)} until ${fmt(p.until)}` : `at ${fmt(p.time)}`;
+    // One flag per place is enough; repeating it for every statement is noise.
+    add(`${suspect.id}|near|${p.place}`, {
       path: shortestPath(c.graph, p.place, watch.place).path,
       text:
         away === 0
-          ? `By ${who}'s own account, ${who} was at ${watchName} at ${fmt(p.time)} (${watch.label}).`
-          : `By ${who}'s own account, ${who} was at ${c.places.get(p.place).name} at ${fmt(p.time)}, a ${mins(away)} walk from ${watchName} (${watch.label}).`,
+          ? `By ${who}'s own account, ${who} was at ${watchName} ${when} (${watch.label}).`
+          : `By ${who}'s own account, ${who} was at ${c.places.get(p.place).name} ${when}, a ${mins(away)} walk from ${watchName} (${watch.label}).`,
     });
   }
 

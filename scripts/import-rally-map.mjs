@@ -2,7 +2,10 @@
 // into an Alibi Breaker map: street corners with positions on the map tiles,
 // and walkable street segments with real names and walking minutes.
 //
-//   node scripts/import-rally-map.mjs <path/to/Inference-Rally/maps/sf-north-beach.json>
+//   node scripts/import-rally-map.mjs <path/to/Inference-Rally/maps/sf-north-beach.json> [--extend lat,lon;lat,lon]
+//
+// --extend widens the visible map to include off-grid spots (piers, parks...)
+// that a case places at exact coordinates.
 //
 // Map tiles: copy Inference-Rally/maps/tiles into maps/tiles.
 
@@ -19,6 +22,8 @@ const M_PER_DEG_LON = 111_320;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = process.argv[2];
+const extendArg = process.argv.indexOf("--extend");
+const extra = extendArg > 0 ? process.argv[extendArg + 1].split(";").map((pt) => pt.split(",").map(Number)) : [];
 if (!source) {
   console.error("Usage: node scripts/import-rally-map.mjs <Inference-Rally map json>");
   process.exit(1);
@@ -55,10 +60,11 @@ for (const [x, col] of rally.columns.entries()) {
 
 const metersPerPx = (156543.03392 * Math.cos((lat0 * Math.PI) / 180)) / 2 ** ZOOM;
 const margin = MARGIN_M / metersPerPx;
-const left = Math.min(...nodes.map((n) => n.px)) - margin;
-const top = Math.min(...nodes.map((n) => n.py)) - margin;
-const right = Math.max(...nodes.map((n) => n.px)) + margin;
-const bottom = Math.max(...nodes.map((n) => n.py)) + margin;
+const bounds = [...nodes.map((n) => [n.px, n.py]), ...extra.map(([lat, lon]) => toPixels(lat, lon))];
+const left = Math.min(...bounds.map((b) => b[0])) - margin;
+const top = Math.min(...bounds.map((b) => b[1])) - margin;
+const right = Math.max(...bounds.map((b) => b[0])) + margin;
+const bottom = Math.max(...bounds.map((b) => b[1])) + margin;
 
 const roads = rally.streets.map(([[x1, y1], [x2, y2]]) => {
   const sameRow = y1 === y2;

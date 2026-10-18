@@ -8,6 +8,7 @@ It ships with two cases:
 
 | Case | You are | The lie |
 |---|---|---|
+| **The Fort Mason Demo Day Theft** | Detective | A prototype taken at Pier 2, next to the Founders, Inc. campus; one subject "never left" Building C |
 | **The North Beach Heist** 💎 | Detective | A diamond thief's alibi doesn't fit the walk down Stockton Street |
 | **The Valencia Street Hit-and-Run Claim** 🚗 | Insurance claims investigator | A claimant "never left dinner", but his card bought ice by Dolores Park |
 
@@ -96,8 +97,9 @@ Key fields:
 
 | Field | What it is |
 |---|---|
-| `map` | Which street map in `maps/` to use (`sf-north-beach`, `sf-mission`, `sf-alamo-square`) |
-| `places` | The case's places, each on a real corner: `"corner": ["Stockton Street", "Union Street"]` |
+| `map` | Which street map in `maps/` to use (`sf-fort-mason`, `sf-north-beach`, `sf-mission`, `sf-alamo-square`) |
+| `places` | The case's places, each on a real corner (`"corner": ["Stockton Street", "Union Street"]`) or at exact coordinates for off-grid spots (`"at": [37.80676, -122.43149]`, linked to the nearest corner by walking distance) |
+| `paths` | Optional footpaths between nearby off-grid places, e.g. `[["pier2", "cafe"]]` |
 | `labels` | Wording: "Detective" vs "Claims investigator", "Accuse" vs "Flag as fraud" |
 | `crime` | Where and when the incident happened (shown on the map) |
 | `watch` | Optional. A place and time window. A suspect's route passing through it gets flagged as suspicious. |

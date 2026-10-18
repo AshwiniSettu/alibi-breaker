@@ -44,6 +44,34 @@ export async function listCases() {
   return cases;
 }
 
+const WALK_DETOUR = 1.3; // paths are rarely straight lines
+
+// Web Mercator, matching how the map tiles were cut (see scripts/import-rally-map.mjs).
+function project(map, lat, lon) {
+  const world = 256 * 2 ** map.tiles.zoom;
+  const sin = Math.sin((lat * Math.PI) / 180);
+  const px = ((lon + 180) / 360) * world;
+  const py = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * world;
+  return [Math.round((px - map.tiles.left) * 10) / 10, Math.round((py - map.tiles.top) * 10) / 10];
+}
+
+function metersBetween(lat1, lon1, lat2, lon2) {
+  const k = Math.PI / 180;
+  const dy = (lat2 - lat1) * 110_574;
+  const dx = (lon2 - lon1) * 111_320 * Math.cos(((lat1 + lat2) / 2) * k);
+  return Math.hypot(dx, dy);
+}
+
+function nearestCorner(map, connected, lat, lon) {
+  let best = null;
+  for (const c of map.corners) {
+    if (!connected.has(c.id)) continue;
+    const d = metersBetween(lat, lon, c.lat, c.lon);
+    if (!best || d < best.d) best = { c, d };
+  }
+  return best?.c;
+}
+
 const norm = (s) => s.toLowerCase().replace(/\b(street|st|avenue|ave)\b\.?/g, "").replace(/\s+/g, " ").trim();
 
 function findCorner(map, corner) {
@@ -62,16 +90,41 @@ export async function loadCase(id) {
   const map = await readJson(path.join(mapsDir, `${data.map}.json`));
 
   const problems = [];
+  const connected = new Set(map.roads.flatMap((r) => [r.from, r.to]));
   const places = data.places.map((p) => {
+    if (p.at) {
+      // An off-grid spot (a pier, a campus...) at exact coordinates, walked to from the
+      // nearest street corner (or the one named in "corner").
+      const [lat, lon] = p.at;
+      const corner = p.corner ? findCorner(map, p.corner) : nearestCorner(map, connected, lat, lon);
+      if (!corner) problems.push(`place ${p.id}: no corner ${JSON.stringify(p.corner)} on ${map.name}`);
+      const [x, y] = project(map, lat, lon);
+      const meters = corner ? metersBetween(lat, lon, corner.lat, corner.lon) * WALK_DETOUR : 0;
+      const link = Math.round((meters / (map.travel?.metersPerMinute ?? 80)) * 10) / 10;
+      return { ...p, cornerId: corner?.id, cornerName: corner ? `near ${corner.name}` : "", x, y, link };
+    }
     const corner = findCorner(map, p.corner);
     if (!corner) problems.push(`place ${p.id}: no corner ${JSON.stringify(p.corner)} on ${map.name}`);
-    return { ...p, cornerId: corner?.id, cornerName: corner?.name, x: corner?.x, y: corner?.y };
+    return { ...p, cornerId: corner?.id, cornerName: corner?.name, x: corner?.x, y: corner?.y, link: 0 };
   });
   if (problems.length) throw new Error(`Case "${id}" has problems:\n- ${problems.join("\n- ")}`);
 
-  // Places hang off their corner with a zero-minute link, so routes run on real streets.
+  // Places hang off their corner, so routes run on real streets.
   const nodes = [...map.corners, ...places];
-  const roads = [...map.roads, ...places.map((p) => ({ from: p.id, to: p.cornerId, minutes: 0, name: null }))];
+  const roads = [...map.roads, ...places.map((p) => ({ from: p.id, to: p.cornerId, minutes: p.link, name: p.path ?? null }))];
+
+  // Footpaths between nearby off-grid places ("paths": [["pier2", "cafe"], ...]).
+  const latLon = (p) => p.at ?? [map.corners.find((c) => c.id === p.cornerId).lat, map.corners.find((c) => c.id === p.cornerId).lon];
+  for (const [a, b] of data.paths ?? []) {
+    const [pa, pb] = [places.find((p) => p.id === a), places.find((p) => p.id === b)];
+    if (!pa || !pb) {
+      problems.push(`path ${a} - ${b}: unknown place`);
+      continue;
+    }
+    const meters = metersBetween(...latLon(pa), ...latLon(pb)) * WALK_DETOUR;
+    roads.push({ from: a, to: b, minutes: Math.round((meters / (map.travel?.metersPerMinute ?? 80)) * 10) / 10, name: "footpath" });
+  }
+  if (problems.length) throw new Error(`Case "${id}" has problems:\n- ${problems.join("\n- ")}`);
 
   const c = {
     labels: { role: "Detective", subjects: "Suspects", accuse: "Accuse", win: "Case closed", wrong: "Wrong suspect" },
@@ -131,7 +184,7 @@ export function publicCase(c) {
       corners: c.map.corners.map(({ id, name, x, y }) => ({ id, name, x, y })),
       places: c.map.places.map(({ id, name, icon, cornerName, x, y }) => ({ id, name, icon, cornerName, x, y })),
     },
-    suspects: c.suspects.map(({ id, name, role, color, bio, avatar }) => ({ id, name, role, color, bio, avatar })),
+    suspects: c.suspects.map(({ id, name, role, color, bio, avatar, hat }) => ({ id, name, role, color, bio, avatar, hat })),
     evidence: c.evidence,
   };
 }
